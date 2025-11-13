@@ -1,40 +1,55 @@
 openapi: 3.0.1
 info:
-  title: UnBolt API
-  description: API for booking locksmith services through ChatGPT. Users can book car lockouts, key programming, home lockouts, and commercial services.
-  version: 'v1'
+  title: UnBolt Locksmith API
+  description: |
+    API for booking professional locksmith services through ChatGPT. 
+    Users can book car lockouts, key programming, home lockouts, and commercial services.
+    Complete flow: service selection -> quote -> add-ons -> promotions -> booking -> payment -> tracking.
+  version: 'v1.0.0'
+  contact:
+    name: UnBolt Support
+    email: support@unbolt.com
+    url: https://unbolt.com
 servers:
-  - url: https://your-app-name.herokuapp.com
+  - url: https://unbolt-chatgpt-integration-production.up.railway.app
+    description: Production server
+
 paths:
   /v1/services:
     get:
       operationId: getServices
       summary: Get available service categories
-      description: Retrieve all available locksmith services including automobile, residential, and commercial services.
+      description: Retrieve all available locksmith services including automobile, residential, and commercial services with pricing.
       responses:
         '200':
           description: Successful response returning list of services
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  services:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        name:
-                          type: string
-                        category:
-                          type: string
-                        base_price:
-                          type: number
-                        description:
-                          type: string
-  
+                $ref: '#/components/schemas/ServiceList'
+              example:
+                services:
+                  - id: "auto_lockout"
+                    name: "Car Lockout"
+                    category: "automobile"
+                    base_price: 79.99
+                    description: "Emergency car lockout service - we'll get you back in your vehicle"
+                  - id: "key_programming"
+                    name: "Key Programming"
+                    category: "automobile"
+                    base_price: 129.99
+                    description: "Program new keys and key fobs"
+                  - id: "home_lockout"
+                    name: "Home Lockout"
+                    category: "residential"
+                    base_price: 89.99
+                    description: "Residential lockout service"
+                  - id: "commercial_lockout"
+                    name: "Commercial Lockout"
+                    category: "commercial"
+                    base_price: 99.99
+                    description: "Business and commercial lockout service"
+
   /v1/quotes:
     post:
       operationId: createQuote
@@ -45,48 +60,87 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - service_id
-                - address
-              properties:
-                service_id:
-                  type: string
-                address:
-                  type: string
-                vehicle_make:
-                  type: string
-                vehicle_model:
-                  type: string
-                vehicle_year:
-                  type: number
-                key_type:
-                  type: string
-                  enum: [proximity, remote_head, transponder, standard]
+              $ref: '#/components/schemas/QuoteRequest'
+            example:
+              service_id: "auto_lockout"
+              address: "123 Main St, New York, NY"
+              vehicle_make: "Toyota"
+              vehicle_model: "Camry"
+              vehicle_year: 2022
+              key_type: "proximity"
       responses:
         '200':
           description: Successful response returning quote details
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  total_price:
-                    type: number
-                  base_price:
-                    type: number
-                  service_fee:
-                    type: number
-                  eta_minutes:
-                    type: number
-  
-  /v1/bookings:
+                $ref: '#/components/schemas/Quote'
+        '400':
+          description: Bad request - invalid input parameters
+        '500':
+          description: Internal server error
+
+  /v1/vehicles/taxonomy:
+    get:
+      operationId: getVehicleTaxonomy
+      summary: Get vehicle makes, models, and years
+      description: Retrieve available vehicle makes, models by make, and supported years for service selection.
+      responses:
+        '200':
+          description: Successful response returning vehicle taxonomy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleTaxonomy'
+
+  /v1/quotes/{id}/reprice:
     post:
-      operationId: createBooking
-      summary: Create a booking
-      description: Create a booking with customer information and scheduled time.
+      operationId: repriceQuote
+      summary: Update quote with additional services
+      description: Recalculate quote price after adding optional services like remote keys or ignition repair.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Quote ID from createQuote response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add_ons:
+                  type: array
+                  items:
+                    type: string
+                    enum: [remote, ignition_repair, lockout]
+              example:
+                add_ons: ["remote", "ignition_repair"]
+      responses:
+        '200':
+          description: Successful response returning updated quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '404':
+          description: Quote not found
+
+  /v1/quotes/{id}/promo:
+    post:
+      operationId: applyPromoCode
+      summary: Apply promotion code to quote
+      description: Apply a promotion code like UNBOLT10 to get discounts on the service quote.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Quote ID from createQuote response
       requestBody:
         required: true
         content:
@@ -94,62 +148,308 @@ paths:
             schema:
               type: object
               required:
-                - quote_id
-                - customer
+                - promo_code
               properties:
-                quote_id:
+                promo_code:
                   type: string
-                customer:
-                  type: object
-                  properties:
-                    name:
-                      type: string
-                    phone:
-                      type: string
-                    email:
-                      type: string
-                scheduled_time:
-                  type: string
-                  format: date-time
+                  example: "UNBOLT10"
+              example:
+                promo_code: "UNBOLT10"
+      responses:
+        '200':
+          description: Successful response returning quote with applied promotion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteWithPromo'
+        '404':
+          description: Quote not found
+
+  /v1/bookings:
+    post:
+      operationId: createBooking
+      summary: Create a booking
+      description: Create a booking with customer information and scheduled time. Returns booking confirmation with tracking details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+            example:
+              quote_id: "quote_123456"
+              customer:
+                name: "John Doe"
+                phone: "+1-555-0123"
+                email: "john@example.com"
+              scheduled_time: "2024-01-15T14:30:00Z"
       responses:
         '200':
           description: Successful response returning booking details
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  status:
-                    type: string
-                  technician_eta:
-                    type: number
-                  tracking_url:
-                    type: string
-                  checkout_url:
-                    type: string
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid booking request
 
-  /v1/bookings/{id}:
-    get:
-      operationId: getBooking
-      summary: Get booking status
-      description: Retrieve the current status and tracking information for a booking.
+  /v1/bookings/{id}/checkout:
+    post:
+      operationId: startCheckout
+      summary: Start payment checkout process
+      description: Initiate the payment checkout process for a booking. Returns Stripe checkout URL for payment processing.
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
+          description: Booking ID from createBooking response
+      responses:
+        '200':
+          description: Successful response returning checkout details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+        '404':
+          description: Booking not found
+
+  /v1/bookings/{id}:
+    get:
+      operationId: getBooking
+      summary: Get booking status and tracking information
+      description: Retrieve the current status, technician details, and tracking information for a booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking ID from createBooking response
       responses:
         '200':
           description: Successful response returning booking status
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  technician_name:
-                    type: string
+                $ref: '#/components/schemas/BookingStatus'
+        '404':
+          description: Booking not found
+
+components:
+  schemas:
+    ServiceList:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+    
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique service identifier
+        name:
+          type: string
+          description: Service display name
+        category:
+          type: string
+          enum: [automobile, residential, commercial]
+          description: Service category
+        base_price:
+          type: number
+          format: float
+          description: Base price in USD
+        description:
+          type: string
+          description: Service description
+    
+    QuoteRequest:
+      type: object
+      required:
+        - service_id
+        - address
+      properties:
+        service_id:
+          type: string
+          description: ID of the selected service
+        address:
+          type: string
+          description: Service address location
+        vehicle_make:
+          type: string
+          description: Vehicle make (e.g., Toyota)
+        vehicle_model:
+          type: string
+          description: Vehicle model (e.g., Camry)
+        vehicle_year:
+          type: integer
+          description: Vehicle year
+        key_type:
+          type: string
+          enum: [proximity, remote_head, transponder, standard]
+          description: Type of key for programming services
+    
+    Quote:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique quote identifier
+        service_id:
+          type: string
+        total_price:
+          type: number
+          format: float
+          description: Total price in USD
+        base_price:
+          type: number
+          format: float
+        service_fee:
+          type: number
+          format: float
+        eta_minutes:
+          type: integer
+          description: Estimated time of arrival in minutes
+        address:
+          type: string
+        vehicle_info:
+          type: object
+          properties:
+            make:
+              type: string
+            model:
+              type: string
+            year:
+              type: integer
+        key_type:
+          type: string
+    
+    QuoteWithPromo:
+      allOf:
+        - $ref: '#/components/schemas/Quote'
+        - type: object
+          properties:
+            promo_code:
+              type: string
+            discount_percent:
+              type: number
+            discount_amount:
+              type: number
+            final_price:
+              type: number
+    
+    VehicleTaxonomy:
+      type: object
+      properties:
+        makes:
+          type: array
+          items:
+            type: string
+        models:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        years:
+          type: array
+          items:
+            type: integer
+    
+    BookingRequest:
+      type: object
+      required:
+        - quote_id
+        - customer
+      properties:
+        quote_id:
+          type: string
+          description: Quote ID from createQuote response
+        customer:
+          type: object
+          required:
+            - name
+            - phone
+          properties:
+            name:
+              type: string
+            phone:
+              type: string
+            email:
+              type: string
+        scheduled_time:
+          type: string
+          format: date-time
+          description: Preferred service time
+    
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique booking identifier
+        quote_id:
+          type: string
+        status:
+          type: string
+          enum: [confirmed, technician_assigned, technician_enroute, arrived, completed]
+        customer:
+          type: object
+        scheduled_time:
+          type: string
+          format: date-time
+        technician_eta:
+          type: integer
+          description: Estimated technician arrival time in minutes
+        tracking_url:
+          type: string
+          description: URL for tracking booking progress
+        checkout_url:
+          type: string
+          description: URL for payment checkout
+    
+    CheckoutResponse:
+      type: object
+      properties:
+        checkout_url:
+          type: string
+          description: Stripe checkout session URL
+        payment_intent:
+          type: string
+          description: Payment intent identifier
+        status:
+          type: string
+          enum: [checkout_created, payment_processing, payment_completed]
+    
+    BookingStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        technician_name:
+          type: string
+        technician_phone:
+          type: string
+        current_eta:
+          type: integer
+          description: Current estimated arrival time in minutes
+        technician_location:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lng:
+              type: number
+              format: float
+
+externalDocs:
+  description: UnBolt API Documentation
+  url: https://unbolt-chatgpt-integration-production.up.railway.app
