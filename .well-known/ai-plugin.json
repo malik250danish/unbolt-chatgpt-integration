@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "UnBolt Locksmith",
+  "name_for_model": "unbolt",
+  "description_for_human": "Book professional locksmith services directly in ChatGPT - car lockouts, key programming, home and commercial services.",
+  "description_for_model": "Helps users book locksmith services including automobile lockouts, key programming, residential and commercial services. Can get quotes, apply promotions, and create bookings. Use when users need locksmith services, are locked out, need new keys, or require lock services.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://your-app-name.herokuapp.com/.well-known/openapi.yaml",
+    "has_user_authentication": false
+  },
+  "logo_url": "https://your-app-name.herokuapp.com/logo.png",
+  "contact_email": "support@unbolt.com",
+  "legal_info_url": "https://unbolt.com/terms"
+}

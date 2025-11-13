@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UnBolt ChatGPT Integration Test</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🔧 UnBolt ChatGPT Integration Test</h1>
+        <p>Test all API endpoints for ChatGPT integration</p>
+        <div class="deployment-info">
+          <strong>Base URL:</strong> <code id="base-url">Loading...</code>
+        </div>
+      </header>
+
+      <div class="test-flow">
+        <div class="test-section">
+          <h2>1. Get Services</h2>
+          <p>Retrieve available locksmith services</p>
+          <button onclick="getServices()">Get Available Services</button>
+          <div id="services-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+          <h2>2. Create Quote</h2>
+          <p>Generate a price quote for service</p>
+          <div class="form-group">
+            <select id="serviceSelect">
+              <option value="auto_lockout">Car Lockout - $79.99</option>
+              <option value="key_programming">Key Programming - $129.99</option>
+              <option value="home_lockout">Home Lockout - $89.99</option>
+              <option value="commercial_lockout">
+                Commercial Lockout - $99.99
+              </option>
+            </select>
+            <input
+              type="text"
+              id="address"
+              placeholder="Enter address"
+              value="123 Main St, New York"
+            />
+            <button onclick="createQuote()">Create Quote</button>
+          </div>
+          <div id="quote-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+          <h2>3. Add Services & Promo</h2>
+          <p>Add additional services and apply promotions</p>
+          <div class="button-group">
+            <button onclick="addRemote()">Add Remote Key (+$25)</button>
+            <button onclick="addIgnitionRepair()">
+              Add Ignition Repair (+$50)
+            </button>
+            <button onclick="applyPromo()">Apply UNBOLT10 Promo (-10%)</button>
+          </div>
+          <div id="addons-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+          <h2>4. Create Booking</h2>
+          <p>Create a booking with customer information</p>
+          <div class="form-group">
+            <input
+              type="text"
+              id="customerName"
+              placeholder="Your Name"
+              value="John Doe"
+            />
+            <input
+              type="tel"
+              id="customerPhone"
+              placeholder="Phone Number"
+              value="+1-555-0123"
+            />
+            <button onclick="createBooking()">Create Booking</button>
+          </div>
+          <div id="booking-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+          <h2>5. Checkout & Track</h2>
+          <p>Process payment and track booking status</p>
+          <div class="button-group">
+            <button onclick="startCheckout()">Start Checkout</button>
+            <button onclick="trackBooking()">Track Booking Status</button>
+          </div>
+          <div id="checkout-result" class="result"></div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2>API Call Log</h2>
+        <div id="api-log" class="log"></div>
+      </div>
+
+      <footer>
+        <p>
+          UnBolt ChatGPT Integration | Follow the steps above to test the
+          complete flow
+        </p>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

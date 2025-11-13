@@ -1,0 +1,155 @@
+openapi: 3.0.1
+info:
+  title: UnBolt API
+  description: API for booking locksmith services through ChatGPT. Users can book car lockouts, key programming, home lockouts, and commercial services.
+  version: 'v1'
+servers:
+  - url: https://your-app-name.herokuapp.com
+paths:
+  /v1/services:
+    get:
+      operationId: getServices
+      summary: Get available service categories
+      description: Retrieve all available locksmith services including automobile, residential, and commercial services.
+      responses:
+        '200':
+          description: Successful response returning list of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        category:
+                          type: string
+                        base_price:
+                          type: number
+                        description:
+                          type: string
+  
+  /v1/quotes:
+    post:
+      operationId: createQuote
+      summary: Create a price quote for service
+      description: Generate a price quote for a specific locksmith service based on service type, location, and vehicle information.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+                - address
+              properties:
+                service_id:
+                  type: string
+                address:
+                  type: string
+                vehicle_make:
+                  type: string
+                vehicle_model:
+                  type: string
+                vehicle_year:
+                  type: number
+                key_type:
+                  type: string
+                  enum: [proximity, remote_head, transponder, standard]
+      responses:
+        '200':
+          description: Successful response returning quote details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  total_price:
+                    type: number
+                  base_price:
+                    type: number
+                  service_fee:
+                    type: number
+                  eta_minutes:
+                    type: number
+  
+  /v1/bookings:
+    post:
+      operationId: createBooking
+      summary: Create a booking
+      description: Create a booking with customer information and scheduled time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quote_id
+                - customer
+              properties:
+                quote_id:
+                  type: string
+                customer:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    phone:
+                      type: string
+                    email:
+                      type: string
+                scheduled_time:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Successful response returning booking details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                  technician_eta:
+                    type: number
+                  tracking_url:
+                    type: string
+                  checkout_url:
+                    type: string
+
+  /v1/bookings/{id}:
+    get:
+      operationId: getBooking
+      summary: Get booking status
+      description: Retrieve the current status and tracking information for a booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response returning booking status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  technician_name:
+                    type: string
